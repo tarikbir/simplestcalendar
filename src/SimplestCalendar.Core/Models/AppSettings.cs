@@ -5,6 +5,10 @@ public sealed class AppSettings
     public DayOfWeek FirstDayOfWeek { get; set; } = DayOfWeek.Monday;
     public string MonthTitleFormat { get; set; } = "MMMM";
     public bool LaunchAtStartup { get; set; }
+    /// <summary>
+    /// When true, the window close button quits the app. When false (default), close hides to the tray.
+    /// </summary>
+    public bool CloseAppOnExit { get; set; }
     public AppTheme Theme { get; set; } = AppTheme.Dark;
     public WindowBounds Window { get; set; } = new();
 }

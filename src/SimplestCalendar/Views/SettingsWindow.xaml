@@ -49,6 +49,15 @@
                             Opacity="0.7"
                             Text="Default is off. Uses a per-user Run registry entry (unpackaged)."
                             TextWrapping="Wrap" />
+                        <ToggleSwitch
+                            Header="Close app on exit"
+                            IsOn="{x:Bind ViewModel.CloseAppOnExit, Mode=TwoWay}"
+                            OffContent="Off"
+                            OnContent="On" />
+                        <TextBlock
+                            Opacity="0.7"
+                            Text="Default is off. When off, closing the window keeps the app running in the tray — use Quit on the tray menu to exit fully. When on, the close button quits the app."
+                            TextWrapping="Wrap" />
                     </StackPanel>
 
                     <StackPanel x:Name="AppearancePanel" Spacing="16" Visibility="Collapsed">

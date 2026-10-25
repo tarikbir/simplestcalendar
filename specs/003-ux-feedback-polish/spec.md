@@ -78,16 +78,17 @@ On the main month grid, today has a distinct cell background (not only blue day 
 
 ### User Story 5 - Clean application Quit (Priority: P1)
 
-Closing the main window (Quit) ends the process without hanging, freezing, or showing “Not responding.” Window state is still persisted when practical.
+Closing the main window respects Settings → General → “Close app on exit” (default Off): Off hides to tray; On quits. Tray Quit always ends the process. Neither path hangs, freezes, or shows “Not responding.” Window state is still persisted when practical.
 
-**Why this priority**: Hang-on-close makes the product feel broken.
+**Why this priority**: Hang-on-close makes the product feel broken; default close-to-tray matches modern desktop apps.
 
-**Independent Test**: Quit from window close and from tray Quit → process exits within a few seconds, UI remains responsive until exit.
+**Independent Test**: With Close app on exit Off, window close keeps the process alive in the tray; tray Quit exits within a few seconds. With the setting On, window close exits the same way. UI remains responsive until exit.
 
 **Acceptance Scenarios**:
 
-1. **Given** the main window is open, **When** the user closes it (Quit), **Then** the process exits without an unresponsive hang.
-2. **Given** the tray Quit command, **When** activated, **Then** the process exits cleanly the same way.
+1. **Given** Close app on exit is Off (default) and the tray is available, **When** the user closes the main window, **Then** the process stays running in the tray and the window can be shown again from the tray.
+2. **Given** Close app on exit is On, **When** the user closes the main window, **Then** the process exits without an unresponsive hang.
+3. **Given** the tray Quit command, **When** activated, **Then** the process exits cleanly regardless of Close app on exit.
 
 ---
 
@@ -162,7 +163,7 @@ The month title uses a distinctive bundled display font (Fraunces from Google Fo
 - **FR-006**: Starred entries MUST show a star on month-grid summaries.
 - **FR-007**: Month grid day cells MUST expand with available window height.
 - **FR-008**: Day cells with overflowing entry summaries MUST allow in-cell vertical scrolling.
-- **FR-009**: Application Quit (window close and tray Quit) MUST exit without hanging the UI.
+- **FR-009**: Application Quit (tray Quit, or window close when Close app on exit is On) MUST exit without hanging the UI. When Close app on exit is Off (default), window close MUST hide to the tray instead of quitting.
 - **FR-010**: Entry editor MUST use a native time-picking control for start time as the primary input.
 - **FR-011**: Timed duration controls MUST appear on one row; the editor dialog MAY grow taller as needed.
 - **FR-012**: Emoji control MUST sit to the right of the note/title field.
@@ -191,7 +192,7 @@ The month title uses a distinctive bundled display font (Fraunces from Google Fo
 
 ## Assumptions
 
-- Window close remains Quit (not close-to-tray); tray Show/Settings/Quit otherwise unchanged.
+- Window close defaults to hide-to-tray; Settings → Close app on exit (default Off) opts into quit-on-close. Tray Show/Settings/Quit otherwise unchanged; tray Quit always exits.
 - Middle-click quick-delete is primary on month-grid entry summary lines; day-list middle-delete remains as a secondary path.
 - Left-click on a day cell remains the only pointer path that opens add from the grid.
 - In-cell scroll is the overflow solution; month-grid page scroll is out of scope.

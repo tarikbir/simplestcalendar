@@ -30,6 +30,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _launchAtStartup;
 
     [ObservableProperty]
+    private bool _closeAppOnExit;
+
+    [ObservableProperty]
     private string _statusMessage = "";
 
     public string DataPath { get; } = PortableDataPaths.GetDataDirectory();
@@ -45,6 +48,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         FirstDayOfWeek = s.FirstDayOfWeek;
         MonthTitleFormat = s.MonthTitleFormat;
         LaunchAtStartup = s.LaunchAtStartup || StartupRegistration.IsEnabled();
+        CloseAppOnExit = s.CloseAppOnExit;
         if (!string.IsNullOrWhiteSpace(AppServices.Current.DataLoadWarning))
             StatusMessage = "Data load warning — see About / startup message.";
     }
@@ -59,6 +63,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         store.Settings.FirstDayOfWeek = FirstDayOfWeek;
         store.Settings.MonthTitleFormat = string.IsNullOrWhiteSpace(MonthTitleFormat) ? "MMMM" : MonthTitleFormat.Trim();
         store.Settings.LaunchAtStartup = LaunchAtStartup;
+        store.Settings.CloseAppOnExit = CloseAppOnExit;
         store.Settings.Theme = AppTheme.Dark;
         await store.SaveAsync();
 

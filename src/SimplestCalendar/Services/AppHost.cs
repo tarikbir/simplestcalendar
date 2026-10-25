@@ -94,9 +94,57 @@ public sealed class AppHost : IDisposable
         if (_quitRequested)
             return;
 
-        // Close means exit. (Win11 often hides tray icons; close-to-tray left users stuck.)
         args.Cancel = true;
-        Quit();
+
+        // Default: hide to tray. Opt-in setting quits on close. Tray Quit always calls Quit().
+        // If the tray failed to create, quit so the user is never left without a way back.
+        var closeAppOnExit = AppServices.Current.Settings.Settings.CloseAppOnExit;
+        if (closeAppOnExit || _tray is null)
+        {
+            Quit();
+            return;
+        }
+
+        HideToTray();
+    }
+
+    private void HideToTray()
+    {
+        try
+        {
+            var hwnd = WindowNative.GetWindowHandle(_mainWindow);
+            if (hwnd != IntPtr.Zero)
+                _ = ShowWindow(hwnd, SwHide);
+
+            _mainWindow.AppWindow.Hide();
+        }
+        catch
+        {
+            // ignore hide failures; tip still helps if tray is visible
+        }
+
+        try
+        {
+            var settings = AppServices.Current.Settings;
+            WindowBoundsService.Capture(_mainWindow, settings.Settings.Window);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await settings.SaveAsync().WaitAsync(TimeSpan.FromSeconds(2));
+                }
+                catch
+                {
+                    // best-effort
+                }
+            });
+        }
+        catch
+        {
+            // ignore
+        }
+
+        _tray?.ShowRunningInTrayTip();
     }
 
     public void ShowMainWindow()
@@ -123,6 +171,7 @@ public sealed class AppHost : IDisposable
             _ = _mainWindow.DispatcherQueue.TryEnqueue(Show);
     }
 
+    private const int SwHide = 0;
     private const int SwShow = 5;
     private const int SwRestore = 9;
 

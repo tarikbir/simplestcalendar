@@ -170,6 +170,7 @@ public sealed class JsonSettingsStore : ISettingsStore
         public string FirstDayOfWeek { get; set; } = "Monday";
         public string MonthTitleFormat { get; set; } = "MMMM";
         public bool LaunchAtStartup { get; set; }
+        public bool CloseAppOnExit { get; set; }
         public string Theme { get; set; } = "Dark";
         public WindowBounds Window { get; set; } = new();
 
@@ -180,6 +181,7 @@ public sealed class JsonSettingsStore : ISettingsStore
             FirstDayOfWeek = s.FirstDayOfWeek.ToString(),
             MonthTitleFormat = s.MonthTitleFormat,
             LaunchAtStartup = s.LaunchAtStartup,
+            CloseAppOnExit = s.CloseAppOnExit,
             Theme = s.Theme.ToString(),
             Window = s.Window
         };
@@ -195,6 +197,7 @@ public sealed class JsonSettingsStore : ISettingsStore
                 FirstDayOfWeek = dow,
                 MonthTitleFormat = string.IsNullOrWhiteSpace(MonthTitleFormat) ? "MMMM" : MonthTitleFormat,
                 LaunchAtStartup = LaunchAtStartup,
+                CloseAppOnExit = CloseAppOnExit,
                 Theme = theme,
                 Window = Window ?? new WindowBounds()
             };
