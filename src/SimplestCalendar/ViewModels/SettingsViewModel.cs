@@ -33,6 +33,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _statusMessage = "";
 
     public string DataPath { get; } = PortableDataPaths.GetDataDirectory();
+    public string AppVersionText { get; } = $"App version: {AppServices.Current.AppVersion}";
+    public string SchemaVersionText { get; } = $"Data schema: v{AppServices.Current.DataSchemaVersion}";
     public string ThemeLabel => "Dark (only theme in v1)";
     public string PreviewTitle =>
         Core.Calendar.MonthTitleFormatter.Format(DateOnly.FromDateTime(DateTime.Now), MonthTitleFormat);
@@ -43,6 +45,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         FirstDayOfWeek = s.FirstDayOfWeek;
         MonthTitleFormat = s.MonthTitleFormat;
         LaunchAtStartup = s.LaunchAtStartup || StartupRegistration.IsEnabled();
+        if (!string.IsNullOrWhiteSpace(AppServices.Current.DataLoadWarning))
+            StatusMessage = "Data load warning — see About / startup message.";
     }
 
     partial void OnMonthTitleFormatChanged(string value) =>

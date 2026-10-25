@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using SimplestCalendar.Core.Models;
 
@@ -7,6 +8,8 @@ namespace SimplestCalendar.Core.Services;
 public interface ISettingsStore
 {
     AppSettings Settings { get; }
+    string? LoadWarning { get; }
+    int LoadedSchemaVersion { get; }
     Task LoadAsync(CancellationToken cancellationToken = default);
     Task SaveAsync(CancellationToken cancellationToken = default);
     void Update(AppSettings settings);
@@ -31,26 +34,95 @@ public sealed class JsonSettingsStore : ISettingsStore
     }
 
     public AppSettings Settings => _settings;
+    public string? LoadWarning { get; private set; }
+    public int LoadedSchemaVersion { get; private set; } = DataSchema.Current;
 
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
+        LoadWarning = null;
+        LoadedSchemaVersion = DataSchema.Current;
+
         if (!File.Exists(_filePath))
         {
             _settings = new AppSettings();
             return;
         }
 
-        await using var stream = File.OpenRead(_filePath);
-        var doc = await JsonSerializer.DeserializeAsync<SettingsDocument>(stream, Options, cancellationToken);
-        _settings = doc?.ToSettings() ?? new AppSettings();
-        _settings.Window.ClampToMinimum();
+        string text;
+        try
+        {
+            text = await File.ReadAllTextAsync(_filePath, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            RefuseWithBackup(0, $"Could not read settings.json: {ex.Message}");
+            _settings = new AppSettings();
+            return;
+        }
+
+        JsonNode? node;
+        try
+        {
+            node = JsonNode.Parse(text);
+        }
+        catch (JsonException)
+        {
+            RefuseWithBackup(0, "settings.json is corrupt. A backup was kept; using defaults.");
+            _settings = new AppSettings();
+            return;
+        }
+
+        if (node is not JsonObject root)
+        {
+            RefuseWithBackup(0, "settings.json has an unexpected shape. A backup was kept; using defaults.");
+            _settings = new AppSettings();
+            return;
+        }
+
+        var version = ReadVersion(root);
+        if (version < 1)
+            version = 1;
+        if (version > DataSchema.Current)
+        {
+            RefuseWithBackup(version, $"settings.json schema v{version} is newer than this app supports (v{DataSchema.Current}). Original left intact; using defaults.");
+            _settings = new AppSettings();
+            return;
+        }
+
+        if (version < DataSchema.Current)
+        {
+            try
+            {
+                SchemaMigration.MigrateToCurrent(root, version);
+                await WriteRootAsync(root, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                RefuseWithBackup(version, $"Could not migrate settings.json: {ex.Message}");
+                _settings = new AppSettings();
+                return;
+            }
+        }
+
+        try
+        {
+            var doc = root.Deserialize<SettingsDocument>(Options);
+            _settings = doc?.ToSettings() ?? new AppSettings();
+            _settings.Window.ClampToMinimum();
+            LoadedSchemaVersion = DataSchema.Current;
+        }
+        catch (JsonException)
+        {
+            RefuseWithBackup(version, "settings.json could not be parsed. A backup was kept; using defaults.");
+            _settings = new AppSettings();
+        }
     }
 
     public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
         _settings.Window.ClampToMinimum();
-        var temp = _filePath + ".tmp";
         var doc = SettingsDocument.From(_settings);
+        var temp = _filePath + ".tmp";
         await using (var stream = File.Create(temp))
         {
             await JsonSerializer.SerializeAsync(stream, doc, Options, cancellationToken);
@@ -58,6 +130,7 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         File.Copy(temp, _filePath, overwrite: true);
         File.Delete(temp);
+        LoadedSchemaVersion = DataSchema.Current;
     }
 
     public void Update(AppSettings settings)
@@ -66,9 +139,34 @@ public sealed class JsonSettingsStore : ISettingsStore
         _settings.Window.ClampToMinimum();
     }
 
+    private void RefuseWithBackup(int versionHint, string warning)
+    {
+        DataFileBackup.Create(_filePath, versionHint);
+        LoadWarning = warning;
+        LoadedSchemaVersion = 0;
+    }
+
+    private static int ReadVersion(JsonObject root)
+    {
+        if (root.TryGetPropertyValue("version", out var v) && v is JsonValue jv && jv.TryGetValue<int>(out var n))
+            return n;
+        return 1;
+    }
+
+    private async Task WriteRootAsync(JsonObject root, CancellationToken cancellationToken)
+    {
+        root["version"] = DataSchema.Current;
+        root["appVersion"] = DataSchema.AppVersion;
+        var temp = _filePath + ".tmp";
+        await File.WriteAllTextAsync(temp, root.ToJsonString(Options), cancellationToken);
+        File.Copy(temp, _filePath, overwrite: true);
+        File.Delete(temp);
+    }
+
     private sealed class SettingsDocument
     {
-        public int Version { get; set; } = 1;
+        public int Version { get; set; } = DataSchema.Current;
+        public string? AppVersion { get; set; }
         public string FirstDayOfWeek { get; set; } = "Monday";
         public string MonthTitleFormat { get; set; } = "MMMM";
         public bool LaunchAtStartup { get; set; }
@@ -77,7 +175,8 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public static SettingsDocument From(AppSettings s) => new()
         {
-            Version = 1,
+            Version = DataSchema.Current,
+            AppVersion = DataSchema.AppVersion,
             FirstDayOfWeek = s.FirstDayOfWeek.ToString(),
             MonthTitleFormat = s.MonthTitleFormat,
             LaunchAtStartup = s.LaunchAtStartup,

@@ -32,6 +32,8 @@
 ```
 
 - `startTime` / `endTime` / duration fields omitted or null when untimed.
+- `appVersion` (string) written on save for diagnostics; optional on load.
+- Schema rules (migrate-up, future refuse + backup, missing `version` ≡ 1): see [../../002-data-schema-versioning/contracts/data-store.md](../../002-data-schema-versioning/contracts/data-store.md).
 - Unknown future `version`: refuse load with safe empty state + user-visible error once (non-destructive backup copy preferred).
 
 ## settings.json

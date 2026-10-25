@@ -1,3 +1,4 @@
+using System.Reflection;
 using SimplestCalendar.Core.Calendar;
 using SimplestCalendar.Core.Services;
 
@@ -13,15 +14,23 @@ public sealed class AppServices
     public IEntryStore Entries { get; }
     public ISettingsStore Settings { get; }
     public DateTime ProcessStartedAt { get; } = DateTime.Now;
+    public string? DataLoadWarning { get; }
+    public string AppVersion { get; }
+    public int DataSchemaVersion => DataSchema.Current;
 
-    private AppServices(IEntryStore entries, ISettingsStore settings)
+    private AppServices(IEntryStore entries, ISettingsStore settings, string? dataLoadWarning, string appVersion)
     {
         Entries = entries;
         Settings = settings;
+        DataLoadWarning = dataLoadWarning;
+        AppVersion = appVersion;
     }
 
     public static async Task InitializeAsync()
     {
+        var appVersion = ResolveAppVersion();
+        DataSchema.AppVersion = appVersion;
+
         var dataDir = PortableDataPaths.GetDataDirectory();
         var entries = new JsonEntryStore(dataDir);
         var settings = new JsonSettingsStore(dataDir);
@@ -32,6 +41,27 @@ public sealed class AppServices
         if (entries.WipeBefore(monthStart) > 0)
             await entries.SaveAsync();
 
-        Current = new AppServices(entries, settings);
+        var warning = JoinWarnings(settings.LoadWarning, entries.LoadWarning);
+        Current = new AppServices(entries, settings, warning, appVersion);
+    }
+
+    private static string? JoinWarnings(string? a, string? b)
+    {
+        if (string.IsNullOrWhiteSpace(a)) return string.IsNullOrWhiteSpace(b) ? null : b;
+        if (string.IsNullOrWhiteSpace(b)) return a;
+        return a + Environment.NewLine + Environment.NewLine + b;
+    }
+
+    private static string ResolveAppVersion()
+    {
+        var asm = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        var info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(info))
+        {
+            var plus = info.IndexOf('+');
+            return plus >= 0 ? info[..plus] : info;
+        }
+
+        return asm.GetName().Version?.ToString(3) ?? "0.0.0";
     }
 }
