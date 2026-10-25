@@ -14,9 +14,27 @@ public sealed class ToastNotificationService
         if (_registered)
             return;
 
-        AppNotificationManager.Default.NotificationInvoked += OnNotificationInvoked;
-        AppNotificationManager.Default.Register();
-        _registered = true;
+        // Register can block indefinitely without package identity — never do it on the UI thread.
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                AppNotificationManager.Default.NotificationInvoked += OnNotificationInvoked;
+                AppNotificationManager.Default.Register();
+                _registered = true;
+            }
+            catch
+            {
+                try
+                {
+                    AppNotificationManager.Default.NotificationInvoked -= OnNotificationInvoked;
+                }
+                catch
+                {
+                    // ignore
+                }
+            }
+        });
     }
 
     public void Unregister()

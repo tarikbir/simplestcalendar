@@ -1,10 +1,8 @@
-# Self-contained unpackaged publish for portable folder deploy.
+# Self-contained unpackaged folder publish (fast launch; many DLLs — ship via installer).
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $root 'artifacts\publish'
 
-# Wipe prior publish output — leftover ReadyToRun / mixed binaries can crash
-# WinUI on net10 (ComInterfaceEntry TypeLoadException at module init).
 if (Test-Path $out) {
     Remove-Item $out -Recurse -Force
 }
@@ -13,12 +11,14 @@ New-Item -ItemType Directory -Force -Path $out | Out-Null
 dotnet publish (Join-Path $root 'src\SimplestCalendar\SimplestCalendar.csproj') `
   -c Release `
   -p:Platform=x64 `
+  -p:RuntimeIdentifier=win-x64 `
   -p:WindowsPackageType=None `
   -p:PublishReadyToRun=false `
+  -p:PublishTrimmed=false `
   --self-contained true `
   -o $out
 
-# Safety net: ensure compiled XAML + PRI landed (WinUI crashes without them).
+# Safety net: WinUI needs .xbf/.pri beside the exe.
 $xbf = @(Get-ChildItem $out -Recurse -Filter '*.xbf' -ErrorAction SilentlyContinue)
 $pri = @(Get-ChildItem $out -Filter '*.pri' -ErrorAction SilentlyContinue)
 if ($xbf.Count -lt 1 -or $pri.Count -lt 1) {
@@ -40,5 +40,11 @@ if ($xbf.Count -lt 1 -or $pri.Count -lt 1) {
     Write-Host "Copied WinUI .xbf/.pri from bin into publish output." -ForegroundColor Yellow
 }
 
+Get-ChildItem $out -Recurse -Filter '*.pdb' -ErrorAction SilentlyContinue | Remove-Item -Force
+
+$exe = Join-Path $out 'SimplestCalendar.exe'
+if (-not (Test-Path $exe)) { throw "Publish output missing: $exe" }
+$vi = (Get-Item $exe).VersionInfo
 Write-Host "Published to $out"
-Write-Host "Run SimplestCalendar.exe from that folder; data/ is created beside the exe."
+Write-Host ("FileVersion={0} ProductVersion={1}" -f $vi.FileVersion, $vi.ProductVersion)
+Write-Host "For a single Setup.exe, run: ./scripts/build-installer.ps1"

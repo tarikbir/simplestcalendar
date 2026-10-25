@@ -1,8 +1,8 @@
-using H.NotifyIcon;
+using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Windowing;
 using SimplestCalendar.Views;
+using WinRT.Interop;
 
 namespace SimplestCalendar.Services;
 
@@ -14,7 +14,7 @@ public sealed class AppHost : IDisposable
     public static AppHost? Current { get; private set; }
 
     private readonly MainWindow _mainWindow;
-    private readonly TaskbarIcon _tray;
+    private readonly NativeTrayIcon? _tray;
     private readonly ToastNotificationService _toasts = new();
     private readonly ReminderHost _reminders;
     private readonly MonthRolloverHost _rollover;
@@ -28,7 +28,15 @@ public sealed class AppHost : IDisposable
 
         WindowBoundsService.Apply(_mainWindow, AppServices.Current.Settings.Settings.Window);
 
-        _toasts.Initialize();
+        try
+        {
+            _toasts.Initialize();
+        }
+        catch
+        {
+            // Toast shell is optional for unpackaged runs.
+        }
+
         _toasts.EntryOpenedFromToast += id =>
             _mainWindow.DispatcherQueue.TryEnqueue(() => ShowCompactForEntry(id));
 
@@ -40,60 +48,90 @@ public sealed class AppHost : IDisposable
             _mainWindow.DispatcherQueue.TryEnqueue(RefreshMainPage);
         };
 
-        _tray = new TaskbarIcon
-        {
-            ToolTipText = "Simplest Calendar"
-        };
-        try
-        {
-            _tray.Icon = new System.Drawing.Icon(
-                Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
-        }
-        catch
-        {
-            // Tray still works without custom icon on some setups.
-        }
-
-        var menu = new MenuFlyout();
-        var showItem = new MenuFlyoutItem { Text = "Show" };
-        showItem.Click += (_, _) => ShowMainWindow();
-        var settingsItem = new MenuFlyoutItem { Text = "Settings" };
-        settingsItem.Click += (_, _) => ShowSettings();
-        var quitItem = new MenuFlyoutItem { Text = "Quit" };
-        quitItem.Click += (_, _) => Quit();
-        menu.Items.Add(showItem);
-        menu.Items.Add(settingsItem);
-        menu.Items.Add(new MenuFlyoutSeparator());
-        menu.Items.Add(quitItem);
-        _tray.ContextFlyout = menu;
-        _tray.LeftClickCommand = new RelayActionCommand(ShowMainWindow);
-
+        _tray = TryCreateTray();
         _mainWindow.AppWindow.Closing += AppWindow_Closing;
     }
 
-    private async void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
+    private NativeTrayIcon? TryCreateTray()
+    {
+        try
+        {
+            var tray = new NativeTrayIcon("Simplest Calendar", ResolveAppIconPath());
+            tray.ShowRequested += () => Enqueue(ShowMainWindow);
+            tray.SettingsRequested += () => Enqueue(ShowSettings);
+            tray.QuitRequested += () => Enqueue(Quit);
+            return tray;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private void Enqueue(Action action) =>
+        _ = _mainWindow.DispatcherQueue.TryEnqueue(() => action());
+
+    private static string? ResolveAppIconPath()
+    {
+        var baseDir = AppContext.BaseDirectory;
+        foreach (var relative in new[]
+                 {
+                     Path.Combine("Assets", "AppIcon.ico"),
+                     "AppIcon.ico"
+                 })
+        {
+            var full = Path.Combine(baseDir, relative);
+            if (File.Exists(full))
+                return full;
+        }
+
+        return null;
+    }
+
+    private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
     {
         if (_quitRequested)
             return;
 
+        // Close means exit. (Win11 often hides tray icons; close-to-tray left users stuck.)
         args.Cancel = true;
-        try
-        {
-            await WindowBoundsService.PersistMainWindowAsync(_mainWindow);
-        }
-        catch
-        {
-            // Still hide even if persist fails.
-        }
-
-        _mainWindow.AppWindow.Hide();
+        Quit();
     }
 
     public void ShowMainWindow()
     {
-        _mainWindow.AppWindow.Show();
-        _mainWindow.Activate();
+        void Show()
+        {
+            var hwnd = WindowNative.GetWindowHandle(_mainWindow);
+            if (hwnd != IntPtr.Zero)
+            {
+                _ = ShowWindow(hwnd, SwRestore);
+                _ = ShowWindow(hwnd, SwShow);
+            }
+
+            _mainWindow.AppWindow.Show();
+            _mainWindow.Activate();
+            _mainWindow.AppWindow.MoveInZOrderAtTop();
+            if (hwnd != IntPtr.Zero)
+                _ = SetForegroundWindow(hwnd);
+        }
+
+        if (_mainWindow.DispatcherQueue.HasThreadAccess)
+            Show();
+        else
+            _ = _mainWindow.DispatcherQueue.TryEnqueue(Show);
     }
+
+    private const int SwShow = 5;
+    private const int SwRestore = 9;
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     public void ShowSettings()
     {
@@ -146,20 +184,8 @@ public sealed class AppHost : IDisposable
         _reminders.Dispose();
         _rollover.Dispose();
         _toasts.Unregister();
-        _tray.Dispose();
+        _tray?.Dispose();
         if (ReferenceEquals(Current, this))
             Current = null;
-    }
-
-    private sealed class RelayActionCommand(Action action) : System.Windows.Input.ICommand
-    {
-        public event EventHandler? CanExecuteChanged
-        {
-            add { }
-            remove { }
-        }
-
-        public bool CanExecute(object? parameter) => true;
-        public void Execute(object? parameter) => action();
     }
 }
