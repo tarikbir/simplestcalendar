@@ -1,0 +1,40 @@
+## .NET / WinUI
+bin/
+obj/
+artifacts/
+coverage*.json
+coverage*.xml
+*.cobertura.xml
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+ARM64/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+## Runtime portable data next to build output
+**/bin/**/data/
+
+## OS / IDE
+Thumbs.db
+Desktop.ini
+.idea/
+*.DotSettings.user
+*.rsuser
+.DS_Store
+
+## Local secrets (none expected)
+*.pfx
+*.key

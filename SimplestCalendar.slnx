@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SimplestCalendar.Core/SimplestCalendar.Core.csproj" />
+    <Project Path="src/SimplestCalendar/SimplestCalendar.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SimplestCalendar.Core.Tests/SimplestCalendar.Core.Tests.csproj" />
+  </Folder>
+</Solution>
