@@ -25,13 +25,13 @@ public class SmokeWorkflowTests
             // Timed with overlap warning
             EntryWorkflow.Save(
                 store,
-                new EntryDraft(today, "Class A", new TimeOnly(10, 0), 2, true, true, 5),
+                new EntryDraft(today, "Class A", new TimeOnly(10, 0), 120, true, true, 5),
                 null,
                 out var overlap1);
             Assert.False(overlap1);
             EntryWorkflow.Save(
                 store,
-                new EntryDraft(today, "Class B", new TimeOnly(11, 0), 2, false, false, 5),
+                new EntryDraft(today, "Class B", new TimeOnly(11, 0), 120, false, false, 5),
                 null,
                 out var overlap2);
             Assert.True(overlap2);
@@ -39,7 +39,7 @@ public class SmokeWorkflowTests
             // Midnight split
             var split = EntryWorkflow.Save(
                 store,
-                new EntryDraft(today, "Night work", new TimeOnly(23, 0), 3, false, true, 5),
+                new EntryDraft(today, "Night work", new TimeOnly(23, 0), 180, false, true, 5),
                 null,
                 out _);
             Assert.Equal(2, split.Count);
@@ -62,7 +62,9 @@ public class SmokeWorkflowTests
                 out _);
             Assert.Contains(store.Entries, e => e.Note == "Class B edited");
 
-            EntryWorkflow.Delete(store, store.Entries.First(e => e.Note == "Night work"));
+            // Segments are independent — delete each explicitly
+            foreach (var night in store.Entries.Where(e => e.Note == "Night work").ToList())
+                EntryWorkflow.Delete(store, night);
             Assert.DoesNotContain(store.Entries, e => e.Note == "Night work");
 
             // Wipe past month

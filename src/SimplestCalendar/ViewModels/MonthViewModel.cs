@@ -6,11 +6,72 @@ using Microsoft.UI.Xaml.Media;
 using SimplestCalendar.Core.Calendar;
 using SimplestCalendar.Core.Models;
 using SimplestCalendar.Core.Sorting;
+using EntryWorkflow = SimplestCalendar.Core.Services.EntryWorkflow;
 using SimplestCalendar.Services;
 using Windows.UI;
 using FontWeight = Windows.UI.Text.FontWeight;
 
 namespace SimplestCalendar.ViewModels;
+
+public sealed partial class DayEntrySummaryLine : ObservableObject
+{
+    public Entry Entry { get; }
+    public string Label { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LineBrush))]
+    [NotifyPropertyChangedFor(nameof(LineBackground))]
+    private bool _isDayHovered;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LineBrush))]
+    [NotifyPropertyChangedFor(nameof(LineBackground))]
+    private bool _isEntryHovered;
+
+    public Brush LineBrush
+    {
+        get
+        {
+            if (IsEntryHovered)
+                return new SolidColorBrush(Color.FromArgb(255, 255, 255, 255));
+            if (IsDayHovered)
+                return new SolidColorBrush(Color.FromArgb(255, 230, 230, 238));
+            return new SolidColorBrush(Color.FromArgb(255, 168, 168, 176));
+        }
+    }
+
+    public Brush LineBackground
+    {
+        get
+        {
+            if (IsEntryHovered)
+                return new SolidColorBrush(Color.FromArgb(255, 70, 90, 120));
+            if (IsDayHovered)
+                return new SolidColorBrush(Color.FromArgb(40, 255, 255, 255));
+            return new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+        }
+    }
+
+    public DayEntrySummaryLine(Entry entry)
+    {
+        Entry = entry;
+        Label = FormatSummary(entry);
+    }
+
+    private static string FormatSummary(Entry e)
+    {
+        var star = e.IsStarred ? "★ " : "";
+        if (e.StartTime is null)
+            return $"{star}{e.Note}";
+        if (e.EndTime is TimeOnly end)
+        {
+            var endText = end == TimeOnly.MinValue ? "00:00" : end.ToString("HH:mm");
+            return $"{star}{e.StartTime.Value:HH:mm}-{endText} {e.Note}";
+        }
+
+        return $"{star}{e.StartTime.Value:HH:mm} {e.Note}";
+    }
+}
 
 public sealed partial class DayCellViewModel : ObservableObject
 {
@@ -22,7 +83,7 @@ public sealed partial class DayCellViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(CellBackground))]
     private bool _isHovered;
 
-    public ObservableCollection<string> Summaries { get; } = [];
+    public ObservableCollection<DayEntrySummaryLine> EntryLines { get; } = [];
 
     public string DayNumber => Date.Day.ToString();
 
@@ -34,10 +95,17 @@ public sealed partial class DayCellViewModel : ObservableObject
         ? new SolidColorBrush(Color.FromArgb(255, 96, 205, 255))
         : new SolidColorBrush(Color.FromArgb(255, 255, 255, 255));
 
-    public Brush CellBackground =>
-        IsHovered
-            ? new SolidColorBrush(Color.FromArgb(255, 55, 55, 58))
-            : new SolidColorBrush(Color.FromArgb(255, 32, 32, 36));
+    public Brush CellBackground
+    {
+        get
+        {
+            if (IsHovered)
+                return new SolidColorBrush(Color.FromArgb(255, 55, 55, 58));
+            if (IsToday)
+                return new SolidColorBrush(Color.FromArgb(255, 24, 52, 78));
+            return new SolidColorBrush(Color.FromArgb(255, 32, 32, 36));
+        }
+    }
 
     public DayCellViewModel(DayCell cell, IEnumerable<Entry> entries)
     {
@@ -45,20 +113,13 @@ public sealed partial class DayCellViewModel : ObservableObject
         IsInViewedMonth = cell.IsInViewedMonth;
         IsToday = cell.IsToday;
         foreach (var entry in EntrySort.Order(entries.Where(e => e.Date == cell.Date)))
-            Summaries.Add(FormatSummary(entry));
+            EntryLines.Add(new DayEntrySummaryLine(entry));
     }
 
-    private static string FormatSummary(Entry e)
+    partial void OnIsHoveredChanged(bool value)
     {
-        if (e.StartTime is null)
-            return e.Note;
-        if (e.EndTime is TimeOnly end)
-        {
-            var endText = end == TimeOnly.MinValue ? "00:00" : end.ToString("HH:mm");
-            return $"{e.StartTime.Value:HH:mm}-{endText} {e.Note}";
-        }
-
-        return $"{e.StartTime.Value:HH:mm} {e.Note}";
+        foreach (var line in EntryLines)
+            line.IsDayHovered = value;
     }
 }
 
@@ -71,6 +132,9 @@ public sealed partial class MonthViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _canGoNext;
+
+    [ObservableProperty]
+    private bool _canGoPrevious;
 
     [ObservableProperty]
     private DateOnly _viewedMonth;
@@ -94,6 +158,7 @@ public sealed partial class MonthViewModel : ObservableObject
 
         Title = MonthTitleFormatter.Format(ViewedMonth, settings.MonthTitleFormat);
         CanGoNext = MonthNavigation.CanGoNext(ViewedMonth, today);
+        CanGoPrevious = MonthNavigation.CanGoPrevious(ViewedMonth, today);
 
         WeekdayHeaders.Clear();
         foreach (var h in MonthGridBuilder.WeekdayHeaders(settings.FirstDayOfWeek))
@@ -104,11 +169,26 @@ public sealed partial class MonthViewModel : ObservableObject
             Days.Add(new DayCellViewModel(cell, _services.Entries.Entries));
     }
 
+    public async Task DeleteEntryAsync(Entry entry)
+    {
+        EntryWorkflow.Delete(_services.Entries, entry);
+        await _services.Entries.SaveAsync();
+        Refresh();
+    }
+
     [RelayCommand]
     private void GoNext()
     {
         var today = DateOnly.FromDateTime(DateTime.Now);
         ViewedMonth = MonthNavigation.Next(ViewedMonth, today);
+        Refresh();
+    }
+
+    [RelayCommand]
+    private void GoPrevious()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        ViewedMonth = MonthNavigation.Previous(ViewedMonth, today);
         Refresh();
     }
 

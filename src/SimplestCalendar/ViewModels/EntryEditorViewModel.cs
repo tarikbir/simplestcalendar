@@ -14,13 +14,19 @@ public sealed partial class EntryEditorViewModel : ObservableObject
     private string _note = "";
 
     [ObservableProperty]
-    private string _startTimeText = "";
+    private bool _hasStartTime;
+
+    [ObservableProperty]
+    private TimeSpan _startTime = TimeSpan.Zero;
 
     [ObservableProperty]
     private bool _hasDuration;
 
     [ObservableProperty]
     private int _durationHours = 1;
+
+    [ObservableProperty]
+    private int _durationMinutesPart;
 
     [ObservableProperty]
     private bool _isStarred;
@@ -44,12 +50,31 @@ public sealed partial class EntryEditorViewModel : ObservableObject
             return;
 
         Note = editing.Note;
-        StartTimeText = editing.StartTime?.ToString("HH:mm") ?? "";
-        HasDuration = editing.DurationHours is > 0;
-        DurationHours = editing.DurationHours is > 0 ? editing.DurationHours.Value : 1;
+        HasStartTime = editing.StartTime is not null;
+        if (editing.StartTime is TimeOnly start)
+            StartTime = new TimeSpan(start.Hour, start.Minute, 0);
+
+        HasDuration = editing.DurationMinutes is > 0;
+        if (editing.DurationMinutes is > 0)
+        {
+            DurationHours = editing.DurationMinutes.Value / 60;
+            DurationMinutesPart = editing.DurationMinutes.Value % 60;
+            if (DurationHours == 0 && DurationMinutesPart == 0)
+            {
+                DurationHours = 1;
+                DurationMinutesPart = 0;
+            }
+        }
+
         IsStarred = editing.IsStarred;
         ReminderEnabled = editing.ReminderEnabled;
         ReminderLeadMinutes = editing.ReminderLeadMinutes > 0 ? editing.ReminderLeadMinutes : 5;
+    }
+
+    partial void OnHasDurationChanged(bool value)
+    {
+        if (value)
+            HasStartTime = true;
     }
 
     public bool TryBuildDraft(out EntryDraft draft)
@@ -57,19 +82,17 @@ public sealed partial class EntryEditorViewModel : ObservableObject
         draft = default!;
         ValidationMessage = null;
 
-        TimeOnly? start = null;
-        if (!string.IsNullOrWhiteSpace(StartTimeText))
-        {
-            if (!TimeOnly.TryParse(StartTimeText.Trim(), out var parsed))
-            {
-                ValidationMessage = "Start time must look like HH:mm.";
-                return false;
-            }
+        TimeOnly? start = HasStartTime
+            ? new TimeOnly(StartTime.Hours, StartTime.Minutes)
+            : null;
 
-            start = parsed;
+        int? duration = null;
+        if (HasDuration)
+        {
+            var total = DurationHours * 60 + DurationMinutesPart;
+            duration = total;
         }
 
-        int? duration = HasDuration ? DurationHours : null;
         draft = new EntryDraft(
             Date,
             Note ?? "",

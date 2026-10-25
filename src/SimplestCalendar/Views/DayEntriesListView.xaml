@@ -31,7 +31,6 @@
             IsItemClickEnabled="True"
             ItemClick="EntriesList_ItemClick"
             ItemsSource="{x:Bind Items}"
-            PointerPressed="EntriesList_PointerPressed"
             SelectionMode="Single">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="vm:DayEntryListItem">

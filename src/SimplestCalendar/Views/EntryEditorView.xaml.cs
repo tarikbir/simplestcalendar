@@ -13,20 +13,31 @@ public sealed partial class EntryEditorView : UserControl
     {
         ViewModel = viewModel;
         InitializeComponent();
-        DurationBox.Value = viewModel.DurationHours;
+        DurationHoursBox.Value = viewModel.DurationHours;
+        DurationMinutesBox.Value = viewModel.DurationMinutesPart;
         LeadBox.Value = viewModel.ReminderLeadMinutes;
-        DurationBox.IsEnabled = viewModel.HasDuration;
+        SyncDurationEnabled();
         LeadBox.IsEnabled = viewModel.ReminderEnabled;
+        StartTimePicker.IsEnabled = viewModel.HasStartTime;
         ViewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(EntryEditorViewModel.HasDuration))
-                DurationBox.IsEnabled = ViewModel.HasDuration;
+                SyncDurationEnabled();
+            if (e.PropertyName == nameof(EntryEditorViewModel.HasStartTime))
+                StartTimePicker.IsEnabled = ViewModel.HasStartTime;
             if (e.PropertyName == nameof(EntryEditorViewModel.ReminderEnabled))
                 LeadBox.IsEnabled = ViewModel.ReminderEnabled;
         };
     }
 
     public void FocusNote() => NoteBox.Focus(FocusState.Programmatic);
+
+    private void SyncDurationEnabled()
+    {
+        var on = ViewModel.HasDuration;
+        DurationHoursBox.IsEnabled = on;
+        DurationMinutesBox.IsEnabled = on;
+    }
 
     private void EmojiButton_Click(object sender, RoutedEventArgs e)
     {
@@ -44,15 +55,27 @@ public sealed partial class EntryEditorView : UserControl
         }
     }
 
-    private void DurationBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    private void DurationHoursBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
     {
         if (!double.IsNaN(args.NewValue))
-            ViewModel.DurationHours = Math.Max(1, (int)args.NewValue);
+            ViewModel.DurationHours = Math.Max(0, (int)args.NewValue);
+    }
+
+    private void DurationMinutesBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        if (!double.IsNaN(args.NewValue))
+            ViewModel.DurationMinutesPart = Math.Clamp((int)args.NewValue, 0, 59);
     }
 
     private void LeadBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
     {
         if (!double.IsNaN(args.NewValue))
             ViewModel.ReminderLeadMinutes = Math.Max(1, (int)args.NewValue);
+    }
+
+    private void StartTimePicker_TimeChanged(object sender, TimePickerValueChangedEventArgs args)
+    {
+        // Checkbox owns HasStartTime; do not auto-enable on picker init/change.
+        ViewModel.StartTime = args.NewTime;
     }
 }

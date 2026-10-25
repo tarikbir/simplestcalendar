@@ -34,7 +34,7 @@ public class SchemaVersionTests
     }
 
     [Fact]
-    public async Task Missing_version_loads_as_v1()
+    public async Task Missing_version_loads_as_v1_and_migrates_to_current()
     {
         var dir = NewDir();
         try
@@ -49,6 +49,46 @@ public class SchemaVersionTests
             Assert.Equal("legacy", store.Entries[0].Note);
             Assert.Null(store.LoadWarning);
             Assert.Equal(DataSchema.Current, store.LoadedSchemaVersion);
+        }
+        finally
+        {
+            Cleanup(dir);
+        }
+    }
+
+    [Fact]
+    public async Task V1_duration_hours_migrates_to_minutes()
+    {
+        var dir = NewDir();
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(dir, "entries.json"), """
+                {
+                  "version": 1,
+                  "entries": [
+                    {
+                      "id": "11111111-1111-1111-1111-111111111111",
+                      "date": "2026-10-25",
+                      "note": "timed",
+                      "startTime": "18:00",
+                      "durationHours": 2,
+                      "endTime": "20:00",
+                      "isStarred": false,
+                      "reminderEnabled": false,
+                      "reminderLeadMinutes": 5,
+                      "createdAt": "2026-10-25T12:00:00",
+                      "updatedAt": "2026-10-25T12:00:00"
+                    }
+                  ]
+                }
+                """);
+
+            var store = new JsonEntryStore(dir);
+            await store.LoadAsync();
+            Assert.Single(store.Entries);
+            Assert.Equal(120, store.Entries[0].DurationMinutes);
+            Assert.Null(store.LoadWarning);
+            Assert.Equal(2, store.LoadedSchemaVersion);
         }
         finally
         {

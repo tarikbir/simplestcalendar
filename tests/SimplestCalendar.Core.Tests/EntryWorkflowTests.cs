@@ -6,7 +6,7 @@ namespace SimplestCalendar.Core.Tests;
 public class EntryWorkflowTests
 {
     [Fact]
-    public async Task Create_update_delete_and_split_persist()
+    public async Task Create_update_delete_segments_independently()
     {
         var dir = Path.Combine(Path.GetTempPath(), "sc-wf-" + Guid.NewGuid().ToString("N"));
         try
@@ -16,7 +16,7 @@ public class EntryWorkflowTests
                 new DateOnly(2026, 10, 25),
                 "Class",
                 new TimeOnly(23, 0),
-                3,
+                180,
                 true,
                 true,
                 5);
@@ -31,16 +31,26 @@ public class EntryWorkflowTests
             Assert.Equal(2, loaded.Entries.Count);
 
             var first = loaded.Entries.First(e => e.SplitIndex == 0);
-            var editDraft = draft with { Note = "Class updated", DurationHours = 2 };
+            var second = loaded.Entries.First(e => e.SplitIndex == 1);
+            var editDraft = new EntryDraft(
+                first.Date,
+                "Class updated",
+                first.StartTime,
+                first.DurationMinutes,
+                first.IsStarred,
+                first.ReminderEnabled,
+                first.ReminderLeadMinutes);
             EntryWorkflow.Save(loaded, editDraft, first, out _);
             await loaded.SaveAsync();
 
-            // 23:00 + 2h still crosses midnight → still 2 segments, old group replaced
+            // Editing first segment only replaces that row; sibling remains with old note.
             Assert.Equal(2, loaded.Entries.Count);
-            Assert.All(loaded.Entries, e => Assert.Equal("Class updated", e.Note));
+            Assert.Contains(loaded.Entries, e => e.Note == "Class updated");
+            Assert.Contains(loaded.Entries, e => e.Id == second.Id && e.Note == "Class");
 
-            EntryWorkflow.Delete(loaded, loaded.Entries[0]);
-            Assert.Empty(loaded.Entries);
+            EntryWorkflow.Delete(loaded, loaded.Entries.First(e => e.Note == "Class updated"));
+            Assert.Single(loaded.Entries);
+            Assert.Equal("Class", loaded.Entries[0].Note);
         }
         finally
         {
@@ -55,8 +65,10 @@ public class EntryWorkflowTests
         Assert.NotNull(EntryWorkflow.Validate(new EntryDraft(
             new DateOnly(2026, 10, 1), "", null, null, false, false, 5)));
         Assert.NotNull(EntryWorkflow.Validate(new EntryDraft(
-            new DateOnly(2026, 10, 1), "x", null, 2, false, false, 5)));
+            new DateOnly(2026, 10, 1), "x", null, 120, false, false, 5)));
         Assert.Null(EntryWorkflow.Validate(new EntryDraft(
-            new DateOnly(2026, 10, 1), "x", new TimeOnly(10, 0), 2, false, false, 5)));
+            new DateOnly(2026, 10, 1), "x", new TimeOnly(10, 0), 120, false, false, 5)));
+        Assert.NotNull(EntryWorkflow.Validate(new EntryDraft(
+            new DateOnly(2026, 10, 1), "x", new TimeOnly(10, 0), 0, false, false, 5)));
     }
 }

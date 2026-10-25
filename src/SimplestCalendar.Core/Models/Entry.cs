@@ -6,7 +6,8 @@ public sealed class Entry
     public DateOnly Date { get; set; }
     public string Note { get; set; } = string.Empty;
     public TimeOnly? StartTime { get; set; }
-    public int? DurationHours { get; set; }
+    /// <summary>Total timed length in minutes. Null when the entry has no timed duration.</summary>
+    public int? DurationMinutes { get; set; }
     public TimeOnly? EndTime { get; set; }
     public bool IsStarred { get; set; }
     public bool ReminderEnabled { get; set; }

@@ -31,8 +31,8 @@ public static class OverlapDetector
     {
         var start = e.StartTime!.Value.Hour * 60 + e.StartTime.Value.Minute;
         int end;
-        if (e.EndTime is null && e.DurationHours is int hours)
-            end = start + hours * 60;
+        if (e.EndTime is null && e.DurationMinutes is int minutes)
+            end = start + minutes;
         else if (e.EndTime is TimeOnly et)
             end = et == TimeOnly.MinValue && e.StartTime != TimeOnly.MinValue
                 ? 24 * 60

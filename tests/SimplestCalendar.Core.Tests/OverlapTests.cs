@@ -13,7 +13,7 @@ public class OverlapTests
             Note = "a",
             StartTime = new TimeOnly(10, 0),
             EndTime = new TimeOnly(12, 0),
-            DurationHours = 2
+            DurationMinutes = 120
         };
         var candidate = new Entry { Note = "b", StartTime = null };
         Assert.False(OverlapDetector.HasOverlap(candidate, [existing]));
@@ -27,14 +27,14 @@ public class OverlapTests
             Note = "a",
             StartTime = new TimeOnly(10, 0),
             EndTime = new TimeOnly(12, 0),
-            DurationHours = 2
+            DurationMinutes = 120
         };
         var candidate = new Entry
         {
             Note = "b",
             StartTime = new TimeOnly(12, 0),
             EndTime = new TimeOnly(13, 0),
-            DurationHours = 1
+            DurationMinutes = 60
         };
         Assert.False(OverlapDetector.HasOverlap(candidate, [existing]));
     }

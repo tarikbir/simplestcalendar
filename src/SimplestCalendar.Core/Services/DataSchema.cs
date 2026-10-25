@@ -5,7 +5,7 @@ namespace SimplestCalendar.Core.Services;
 /// </summary>
 public static class DataSchema
 {
-    public const int Current = 1;
+    public const int Current = 2;
 
     /// <summary>
     /// Set once at process start from the UI assembly informational version.

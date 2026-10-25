@@ -76,6 +76,7 @@ public sealed class AppHost : IDisposable
         var baseDir = AppContext.BaseDirectory;
         foreach (var relative in new[]
                  {
+                     Path.Combine("Assets", "Resources", "AppIcon.ico"),
                      Path.Combine("Assets", "AppIcon.ico"),
                      "AppIcon.ico"
                  })
@@ -164,19 +165,50 @@ public sealed class AppHost : IDisposable
 
     public void Quit()
     {
+        if (_quitRequested)
+            return;
+
         _quitRequested = true;
+
+        // Capture on UI thread; persist off-thread with a short timeout so close never deadlocks.
         try
         {
-            WindowBoundsService.PersistMainWindowAsync(_mainWindow).GetAwaiter().GetResult();
+            var settings = AppServices.Current.Settings;
+            WindowBoundsService.Capture(_mainWindow, settings.Settings.Window);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await settings.SaveAsync().WaitAsync(TimeSpan.FromSeconds(2));
+                }
+                catch
+                {
+                    // best-effort
+                }
+            });
         }
         catch
         {
             // ignore
         }
 
-        Dispose();
-        _mainWindow.Close();
-        Application.Current.Exit();
+        try
+        {
+            Dispose();
+        }
+        catch
+        {
+            // ignore
+        }
+
+        try
+        {
+            Application.Current.Exit();
+        }
+        catch
+        {
+            // ignore
+        }
     }
 
     public void Dispose()

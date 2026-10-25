@@ -7,7 +7,7 @@ public sealed record EntryDraft(
     DateOnly Date,
     string Note,
     TimeOnly? StartTime,
-    int? DurationHours,
+    int? DurationMinutes,
     bool IsStarred,
     bool ReminderEnabled,
     int ReminderLeadMinutes);
@@ -18,12 +18,12 @@ public static class EntryWorkflow
     {
         if (string.IsNullOrWhiteSpace(draft.Note))
             return "Note is required.";
-        if (draft.DurationHours is int hours)
+        if (draft.DurationMinutes is int minutes)
         {
             if (draft.StartTime is null)
                 return "Duration requires a start time.";
-            if (hours < 1)
-                return "Duration must be at least 1 hour.";
+            if (minutes < 1)
+                return "Duration must be at least 1 minute.";
         }
 
         return null;
@@ -53,12 +53,12 @@ public static class EntryWorkflow
             ];
         }
 
-        if (draft.DurationHours is int durationHours)
+        if (draft.DurationMinutes is int durationMinutes)
         {
             return DurationSplit.CreateTimedEntry(
                 draft.Date,
                 draft.StartTime.Value,
-                durationHours,
+                durationMinutes,
                 draft.Note.Trim(),
                 draft.IsStarred,
                 draft.ReminderEnabled,
@@ -83,7 +83,8 @@ public static class EntryWorkflow
     }
 
     /// <summary>
-    /// Removes the edited entry (and its split group if any), then inserts materialized drafts.
+    /// Removes the edited entry only, then inserts materialized drafts.
+    /// Split siblings are left alone (independent entities).
     /// </summary>
     public static IReadOnlyList<Entry> Save(
         IEntryStore store,
@@ -94,20 +95,9 @@ public static class EntryWorkflow
         hasOverlapWarning = false;
         var created = Materialize(draft);
 
-        // Detect overlap against same-day timed entries excluding the ones we will remove.
         var removeIds = new HashSet<Guid>();
         if (editing is not null)
-        {
-            if (editing.SplitGroupId is Guid group)
-            {
-                foreach (var e in store.Entries.Where(x => x.SplitGroupId == group))
-                    removeIds.Add(e.Id);
-            }
-            else
-            {
-                removeIds.Add(editing.Id);
-            }
-        }
+            removeIds.Add(editing.Id);
 
         foreach (var piece in created)
         {
@@ -125,18 +115,7 @@ public static class EntryWorkflow
         return created;
     }
 
-    public static void Delete(IEntryStore store, Entry entry)
-    {
-        if (entry.SplitGroupId is Guid group)
-        {
-            foreach (var id in store.Entries.Where(e => e.SplitGroupId == group).Select(e => e.Id).ToList())
-                store.Remove(id);
-        }
-        else
-        {
-            store.Remove(entry.Id);
-        }
-    }
+    public static void Delete(IEntryStore store, Entry entry) => store.Remove(entry.Id);
 
     public static string FormatListLabel(Entry e)
     {

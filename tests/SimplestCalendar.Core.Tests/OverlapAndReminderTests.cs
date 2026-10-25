@@ -14,7 +14,7 @@ public class OverlapAndReminderTests
             Note = "a",
             StartTime = new TimeOnly(10, 0),
             EndTime = new TimeOnly(12, 0),
-            DurationHours = 2
+            DurationMinutes = 120
         };
         var candidate = new Entry
         {
@@ -22,7 +22,7 @@ public class OverlapAndReminderTests
             Note = "b",
             StartTime = new TimeOnly(11, 0),
             EndTime = new TimeOnly(13, 0),
-            DurationHours = 2
+            DurationMinutes = 120
         };
         Assert.True(OverlapDetector.HasOverlap(candidate, [existing]));
     }

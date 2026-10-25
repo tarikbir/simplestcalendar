@@ -131,7 +131,7 @@ internal sealed class NativeTrayIcon : IDisposable
             // ignore
         }
 
-        if (!_thread.Join(2000))
+        if (!_thread.Join(500))
         {
             // Best-effort; process exit will clean up.
         }
