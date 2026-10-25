@@ -7,7 +7,7 @@ Extends MVP paths: `<exe>/data/entries.json`, `settings.json`.
 ```json
 {
   "version": 1,
-  "appVersion": "1.0.0",
+  "appVersion": "0.3.0",
   "entries": [ ]
 }
 ```

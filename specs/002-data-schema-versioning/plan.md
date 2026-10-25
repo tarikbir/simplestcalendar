@@ -33,7 +33,7 @@ src/SimplestCalendar.Core/Services/
   JsonEntryStore.cs      # version-aware load/save
   JsonSettingsStore.cs   # version-aware load/save
 src/SimplestCalendar/
-  SimplestCalendar.csproj  # Version 1.0.0
+  SimplestCalendar.csproj  # Version 0.3.0
   Services/AppServices.cs  # DataLoadWarning
   MainWindow / Settings    # dialog + About versions
 tests/.../SchemaVersionTests.cs

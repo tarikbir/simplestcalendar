@@ -68,7 +68,7 @@ User opens Settings → About / Data and sees app version and data schema versio
 - **FR-005**: Missing `version` → treat as 1.
 - **FR-006**: Corrupt JSON → backup + empty/defaults + warning.
 - **FR-007**: About shows app + schema versions; startup surfaces load warnings once.
-- **FR-008**: Assembly/InformationalVersion pinned (start `1.0.0`).
+- **FR-008**: Assembly/InformationalVersion pinned (currently `0.3.0`).
 
 ## Success Criteria
 

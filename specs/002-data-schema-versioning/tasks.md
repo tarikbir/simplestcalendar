@@ -7,7 +7,7 @@
 
 - [x] T001 Add `DataSchema.cs` and `DataFileBackup.cs` under `src/SimplestCalendar.Core/Services/`
 - [x] T002 Add `SchemaMigration.cs` migration pipeline (Current=1, no-op steps) under same folder
-- [x] T003 [P] Set `Version`/`InformationalVersion` to `1.0.0` on `src/SimplestCalendar/SimplestCalendar.csproj`; expose app version string for stores
+- [x] T003 [P] Set `Version`/`InformationalVersion` on `src/SimplestCalendar/SimplestCalendar.csproj` (currently `0.3.0`); expose app version string for stores
 
 ## Phase 2: US1 — Safe load / save
 
