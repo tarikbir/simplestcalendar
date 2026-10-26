@@ -1,8 +1,7 @@
 # Replaceable visual resources
 
-Put app icons and other replaceable images here.
+- `AppIcon.svg` — canonical artwork (prefer this when regenerating)
+- `AppIcon-source.png` — high-res raster of the SVG (1024×1024)
+- `AppIcon.ico` — window, tray, and exe icon
 
-- `AppIcon.ico` — window, tray, and exe icon (placeholder calendar-style asset until you replace it)
-- Add PNGs / other art here as needed; wire new files in `SimplestCalendar.csproj` as `Content` with `CopyToOutputDirectory`.
-
-After replacing `AppIcon.ico`, rebuild so the next installer/publish picks up the new icon.
+WinUI tile/splash PNGs under `Assets/` are generated from the SVG raster. After replacing icon assets, rebuild so the next installer/publish picks them up.
