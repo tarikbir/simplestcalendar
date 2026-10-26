@@ -26,6 +26,9 @@ public static class EntryWorkflow
                 return "Duration must be at least 1 minute.";
         }
 
+        if (draft.ReminderEnabled && (draft.ReminderLeadMinutes < 1 || draft.ReminderLeadMinutes > 60))
+            return "Lead minutes must be between 1 and 60.";
+
         return null;
     }
 
@@ -46,7 +49,7 @@ public static class EntryWorkflow
                     Note = draft.Note.Trim(),
                     IsStarred = draft.IsStarred,
                     ReminderEnabled = draft.ReminderEnabled,
-                    ReminderLeadMinutes = draft.ReminderLeadMinutes > 0 ? draft.ReminderLeadMinutes : 5,
+                    ReminderLeadMinutes = ClampLeadMinutes(draft.ReminderLeadMinutes),
                     CreatedAt = stamp,
                     UpdatedAt = stamp
                 }
@@ -62,7 +65,7 @@ public static class EntryWorkflow
                 draft.Note.Trim(),
                 draft.IsStarred,
                 draft.ReminderEnabled,
-                draft.ReminderLeadMinutes > 0 ? draft.ReminderLeadMinutes : 5,
+                ClampLeadMinutes(draft.ReminderLeadMinutes),
                 stamp);
         }
 
@@ -75,7 +78,7 @@ public static class EntryWorkflow
                 StartTime = draft.StartTime,
                 IsStarred = draft.IsStarred,
                 ReminderEnabled = draft.ReminderEnabled,
-                ReminderLeadMinutes = draft.ReminderLeadMinutes > 0 ? draft.ReminderLeadMinutes : 5,
+                ReminderLeadMinutes = ClampLeadMinutes(draft.ReminderLeadMinutes),
                 CreatedAt = stamp,
                 UpdatedAt = stamp
             }
@@ -114,6 +117,9 @@ public static class EntryWorkflow
 
         return created;
     }
+
+    private static int ClampLeadMinutes(int leadMinutes) =>
+        leadMinutes > 0 ? Math.Clamp(leadMinutes, 1, 60) : 5;
 
     public static void Delete(IEntryStore store, Entry entry) => store.Remove(entry.Id);
 

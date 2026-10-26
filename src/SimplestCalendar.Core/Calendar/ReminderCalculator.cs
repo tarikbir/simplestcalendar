@@ -9,7 +9,7 @@ public static class ReminderCalculator
         if (!entry.ReminderEnabled)
             return null;
 
-        var lead = TimeSpan.FromMinutes(Math.Max(1, entry.ReminderLeadMinutes));
+        var lead = TimeSpan.FromMinutes(Math.Clamp(entry.ReminderLeadMinutes, 1, 60));
         if (entry.StartTime is TimeOnly start)
         {
             var at = entry.Date.ToDateTime(start);

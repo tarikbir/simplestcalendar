@@ -9,6 +9,7 @@ public static class WindowBoundsService
 {
     public static void Apply(Window window, WindowBounds bounds)
     {
+        ApplyMinimumSize(window);
         bounds.ClampToMinimum();
         window.AppWindow.Resize(new SizeInt32((int)bounds.Width, (int)bounds.Height));
         if (bounds.X is double x && bounds.Y is double y)
@@ -18,6 +19,15 @@ public static class WindowBoundsService
 
         if (string.Equals(bounds.State, "Maximized", StringComparison.OrdinalIgnoreCase))
             window.AppWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
+    }
+
+    public static void ApplyMinimumSize(Window window)
+    {
+        if (window.AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.PreferredMinimumWidth = (int)WindowBounds.MinWidth;
+            presenter.PreferredMinimumHeight = (int)WindowBounds.MinHeight;
+        }
     }
 
     public static void Capture(Window window, WindowBounds bounds)

@@ -70,7 +70,7 @@ public sealed partial class EntryEditorView : UserControl
     private void LeadBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
     {
         if (!double.IsNaN(args.NewValue))
-            ViewModel.ReminderLeadMinutes = Math.Max(1, (int)args.NewValue);
+            ViewModel.ReminderLeadMinutes = Math.Clamp((int)args.NewValue, 1, 60);
     }
 
     private void StartTimePicker_TimeChanged(object sender, TimePickerValueChangedEventArgs args)

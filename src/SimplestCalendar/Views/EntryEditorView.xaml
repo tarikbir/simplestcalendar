@@ -27,7 +27,10 @@
                     AcceptsReturn="True"
                     AutomationProperties.AutomationId="EntryNoteBox"
                     Header="Note"
-                    MinHeight="96"
+                    Height="120"
+                    MaxHeight="120"
+                    MinHeight="120"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto"
                     Text="{x:Bind ViewModel.Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                     TextWrapping="Wrap" />
                 <Button
@@ -110,6 +113,7 @@
                 <NumberBox
                     x:Name="LeadBox"
                     Width="100"
+                    Maximum="60"
                     Minimum="1"
                     ValueChanged="LeadBox_ValueChanged" />
             </StackPanel>

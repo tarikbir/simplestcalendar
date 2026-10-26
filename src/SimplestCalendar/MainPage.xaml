@@ -53,12 +53,14 @@
 
             <Button
                 Grid.Column="4"
-                Width="40"
+                Width="48"
+                Height="40"
+                Padding="0"
                 AutomationProperties.AutomationId="SettingsButton"
                 AutomationProperties.Name="Settings"
                 Click="SettingsButton_Click"
                 ToolTipService.ToolTip="Settings">
-                <FontIcon Glyph="&#xE713;" />
+                <FontIcon FontSize="16" Glyph="&#xE713;" />
             </Button>
         </Grid>
 
@@ -82,76 +84,79 @@
             </ItemsRepeater.ItemTemplate>
         </ItemsRepeater>
 
-        <ItemsRepeater
-            x:Name="MonthGrid"
+        <Border
+            x:Name="MonthHost"
             Grid.Row="2"
-            ItemsSource="{x:Bind ViewModel.Days}"
-            SizeChanged="MonthGrid_SizeChanged">
-            <ItemsRepeater.Layout>
-                <UniformGridLayout
-                    x:Name="MonthGridLayout"
-                    ItemsStretch="Fill"
-                    MaximumRowsOrColumns="7"
-                    MinColumnSpacing="4"
-                    MinItemHeight="88"
-                    MinRowSpacing="4"
-                    Orientation="Horizontal" />
-            </ItemsRepeater.Layout>
-            <ItemsRepeater.ItemTemplate>
-                <DataTemplate x:DataType="vm:DayCellViewModel">
-                    <Border
-                        Padding="6"
-                        Background="{x:Bind CellBackground, Mode=OneWay}"
-                        BorderBrush="#404040"
-                        BorderThickness="1"
-                        CornerRadius="4"
-                        Opacity="{x:Bind OpacityForMonth}"
-                        PointerEntered="DayCell_PointerEntered"
-                        PointerExited="DayCell_PointerExited"
-                        PointerPressed="DayCell_PointerPressed"
-                        RightTapped="DayCell_RightTapped"
-                        Tag="{x:Bind}">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-                            <TextBlock
-                                FontWeight="{x:Bind TodayWeight}"
-                                Foreground="{x:Bind TodayBrush}"
-                                Text="{x:Bind DayNumber}" />
-                            <ScrollViewer
-                                Grid.Row="1"
-                                VerticalScrollBarVisibility="Auto"
-                                VerticalScrollMode="Enabled">
-                                <ItemsControl ItemsSource="{x:Bind EntryLines}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:DayEntrySummaryLine">
-                                            <Border
-                                                Padding="2,1"
-                                                Margin="0,1"
-                                                Background="{x:Bind LineBackground, Mode=OneWay}"
-                                                CornerRadius="2"
-                                                PointerEntered="EntryLine_PointerEntered"
-                                                PointerExited="EntryLine_PointerExited"
-                                                PointerPressed="EntryLine_PointerPressed"
-                                                Tag="{x:Bind}">
-                                                <TextBlock
-                                                    FontSize="11"
-                                                    Foreground="{x:Bind LineBrush, Mode=OneWay}"
-                                                    Text="{x:Bind Label}"
-                                                    TextTrimming="CharacterEllipsis"
-                                                    TextWrapping="NoWrap"
-                                                    ToolTipService.ToolTip="Middle-click to delete" />
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </Grid>
-                    </Border>
-                </DataTemplate>
-            </ItemsRepeater.ItemTemplate>
-        </ItemsRepeater>
+            SizeChanged="MonthHost_SizeChanged">
+            <ItemsRepeater
+                x:Name="MonthGrid"
+                ItemsSource="{x:Bind ViewModel.Days}">
+                <ItemsRepeater.Layout>
+                    <UniformGridLayout
+                        x:Name="MonthGridLayout"
+                        ItemsStretch="Fill"
+                        MaximumRowsOrColumns="7"
+                        MinColumnSpacing="4"
+                        MinItemHeight="88"
+                        MinRowSpacing="4"
+                        Orientation="Horizontal" />
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DayCellViewModel">
+                        <Border
+                            Padding="6"
+                            Background="{x:Bind CellBackground, Mode=OneWay}"
+                            BorderBrush="#404040"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Loaded="DayCell_Loaded"
+                            Opacity="{x:Bind OpacityForMonth}"
+                            PointerEntered="DayCell_PointerEntered"
+                            PointerExited="DayCell_PointerExited"
+                            Tag="{x:Bind}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock
+                                    FontWeight="{x:Bind TodayWeight}"
+                                    Foreground="{x:Bind TodayBrush}"
+                                    Text="{x:Bind DayNumber}" />
+                                <ScrollViewer
+                                    Grid.Row="1"
+                                    VerticalScrollBarVisibility="Auto"
+                                    VerticalScrollMode="Enabled">
+                                    <ItemsControl ItemsSource="{x:Bind EntryLines}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:DayEntrySummaryLine">
+                                                <Border
+                                                    Padding="2,1"
+                                                    Margin="0,1"
+                                                    Background="{x:Bind LineBackground, Mode=OneWay}"
+                                                    CornerRadius="2"
+                                                    PointerEntered="EntryLine_PointerEntered"
+                                                    PointerExited="EntryLine_PointerExited"
+                                                    PointerPressed="EntryLine_PointerPressed"
+                                                    RightTapped="EntryLine_RightTapped"
+                                                    Tag="{x:Bind}">
+                                                    <TextBlock
+                                                        FontSize="11"
+                                                        Foreground="{x:Bind LineBrush, Mode=OneWay}"
+                                                        Text="{x:Bind Label}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                        TextWrapping="NoWrap"
+                                                        ToolTipService.ToolTip="Right-click to edit · Middle-click to delete" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+        </Border>
     </Grid>
 </Page>

@@ -18,6 +18,7 @@ public sealed partial class MainWindow : Window
 
         AppWindow.SetIcon("Assets/Resources/AppIcon.ico");
         AppWindow.Resize(new Windows.Graphics.SizeInt32(1100, 720));
+        WindowBoundsService.ApplyMinimumSize(this);
 
         RootFrame.Navigate(typeof(MainPage));
         Activated += MainWindow_Activated;

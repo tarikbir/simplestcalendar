@@ -12,6 +12,7 @@ internal sealed class NativeTrayIcon : IDisposable
     private readonly ManualResetEventSlim _ready = new(false);
     private Exception? _startError;
     private bool _disposed;
+    private bool _trayTipShownThisSession;
 
     public event Action? ShowRequested;
     public event Action? SettingsRequested;
@@ -102,6 +103,9 @@ internal sealed class NativeTrayIcon : IDisposable
 
     public void ShowRunningInTrayTip()
     {
+        if (_trayTipShownThisSession)
+            return;
+
         try
         {
             _notify?.ShowBalloonTip(
@@ -109,6 +113,7 @@ internal sealed class NativeTrayIcon : IDisposable
                 "Simplest Calendar",
                 "Still running in the notification area. Click the icon to open again.",
                 System.Windows.Forms.ToolTipIcon.Info);
+            _trayTipShownThisSession = true;
         }
         catch
         {

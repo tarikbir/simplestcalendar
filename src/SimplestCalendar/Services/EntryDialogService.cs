@@ -2,7 +2,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using SimplestCalendar.Core.Models;
 using SimplestCalendar.Core.Services;
-using SimplestCalendar.Core.Sorting;
 using SimplestCalendar.ViewModels;
 using SimplestCalendar.Views;
 
@@ -25,6 +24,8 @@ public static class EntryDialogService
             XamlRoot = xamlRoot,
             RequestedTheme = ElementTheme.Dark
         };
+
+        dialog.Opened += (_, _) => editor.FocusNote();
 
         dialog.PrimaryButtonClick += async (_, args) =>
         {
@@ -62,46 +63,5 @@ public static class EntryDialogService
 
         var result = await dialog.ShowAsync();
         return result == ContentDialogResult.Primary;
-    }
-
-    public static async Task ShowDayListAsync(XamlRoot xamlRoot, DateOnly date, Action refresh)
-    {
-        var store = AppServices.Current.Entries;
-        var items = EntrySort.Order(store.Entries.Where(e => e.Date == date))
-            .Select(e => new DayEntryListItem(e))
-            .ToList();
-        if (items.Count == 0)
-            return;
-
-        var list = new DayEntriesListView(items);
-        var dialog = new ContentDialog
-        {
-            Title = $"Entries — {date:dddd, MMM d}",
-            Content = list,
-            CloseButtonText = "Close",
-            XamlRoot = xamlRoot,
-            RequestedTheme = ElementTheme.Dark
-        };
-
-        list.EditRequested += async (_, item) =>
-        {
-            dialog.Hide();
-            var saved = await ShowEditorAsync(xamlRoot, item.Entry.Date, item.Entry);
-            if (saved)
-                refresh();
-        };
-
-        list.DeleteRequested += async (_, item) =>
-        {
-            EntryWorkflow.Delete(store, item.Entry);
-            await store.SaveAsync();
-            items.Remove(item);
-            list.Items.Remove(item);
-            refresh();
-            if (list.Items.Count == 0)
-                dialog.Hide();
-        };
-
-        await dialog.ShowAsync();
     }
 }

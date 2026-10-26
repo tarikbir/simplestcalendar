@@ -68,7 +68,9 @@ public sealed partial class EntryEditorViewModel : ObservableObject
 
         IsStarred = editing.IsStarred;
         ReminderEnabled = editing.ReminderEnabled;
-        ReminderLeadMinutes = editing.ReminderLeadMinutes > 0 ? editing.ReminderLeadMinutes : 5;
+        ReminderLeadMinutes = editing.ReminderLeadMinutes > 0
+            ? Math.Clamp(editing.ReminderLeadMinutes, 1, 60)
+            : 5;
     }
 
     partial void OnHasDurationChanged(bool value)

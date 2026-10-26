@@ -26,8 +26,8 @@ public sealed class WindowBounds
     public double? Y { get; set; }
     public string State { get; set; } = "Normal";
 
-    public const double MinWidth = 900;
-    public const double MinHeight = 600;
+    public const double MinWidth = 400;
+    public const double MinHeight = 525;
 
     public void ClampToMinimum()
     {
